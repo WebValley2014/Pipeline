@@ -70,7 +70,7 @@ class SFF2OTU:
 
     def sffinfo(self):
         for sff in self.sff:
-            command = 'sffinfo(sff=%s,fasta=T,qfile=T,sfftxt=F,flow=F)' % sff
+            command = 'sffinfo(sff=%s,fasta=T,sfftxt=F,flow=F)' % sff
             output = self.mothur(self.dir, command)
 
             for line in output[output.index('Output File Names: \n') + 1:]:
