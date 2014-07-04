@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import csv
-import os
 import numpy
 import optparse
-import shutil
+import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -35,10 +35,13 @@ class SFF2OTU:
         self.group = []
 
     def __del__(self):
+        import shutil
         shutil.rmtree(self.dir)
         shutil.rmtree(self.fasta_dir)
 
-    def run(self, parallel = 1, *args, **kwargs):
+    def run(self, processors = 1, *args, **kwargs):
+        kwargs['processors'] = processors
+
         self.sffinfo()
         self.map2oligo()
         self.trim(kwargs)
@@ -46,8 +49,9 @@ class SFF2OTU:
 
         mapfile = self.merge_map()
         self.merge_fasta(mapfile)
-        self.pick_otus(parallel)
-        return self.biom_convert()
+        self.pick_otus(processors)
+        taxa_otu = self.summarize_taxa()
+        return self.merge_otu(taxa_otu)
 
     def command(self, args):
         process = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -144,10 +148,41 @@ class SFF2OTU:
         combined = os.path.join(self.dir, 'combined_seqs.fna')
         self.command(['pick_de_novo_otus.py', '-i', combined, '-o', self.dir, '-f', '-a', '-O', str(parallel)])
 
-    def biom_convert(self):
+    def summarize_taxa(self):
         biom = os.path.join(self.dir, 'otu_table.biom')
+        taxa_out = os.path.join(self.dir, 'taxa_out')
+        self.command(['summarize_taxa.py', '-i', biom, '-o', taxa_out])
+        return taxa_out
+
+    def merge_otu(self, taxa_out):
+        line = None
+        data = None
+
+        for otu in os.listdir(taxa_out):
+            if not re.search('L[0-9]*.txt$', otu):
+                continue
+
+            matrix = numpy.loadtxt(os.path.join(taxa_out, otu), dtype = str, delimiter = '\t')
+            if line == None:
+                line = matrix[0]
+
+            if data == None:
+                data = matrix[1:]
+            else:
+                data = numpy.concatenate((data, matrix[1:]))
+
+        line[0] = '#OTU ID'
+        data = numpy.append(data, data[:, 0].reshape(len(data), 1),axis = 1)
+        for i in xrange(len(data)):
+            data[i, 0] = 'merged' + str(i)
+
         otu_table = os.path.join(os.path.dirname(self.sff[0]), self.job_id + '.otu_table.txt')
-        self.command(['biom', 'convert', '-i', otu_table, '-b', '--header-key', 'taxonomy', '-o', otu_table])
+        with open(otu_table, 'w') as output:
+            writer = csv.writer(output, delimiter = '\t', lineterminator = '\n')
+            writer.writerow(line)
+            for line in data:
+                writer.writerow(line)
+
         return otu_table
 
 if __name__ == '__main__':
@@ -167,4 +202,4 @@ if __name__ == '__main__':
     job_id = str(uuid.uuid4())
 
     sff2otu = SFF2OTU(job_id, sff, mapping)
-    print(sff2otu.run(parallel = options.parallel, processors = options.parallel))
+    print(sff2otu.run(processors = options.parallel))
