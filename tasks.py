@@ -10,7 +10,7 @@ app = Celery('tasks', broker = 'amqp://wvlab:wv2014@54.72.200.168/', backend = '
 
 @app.task
 def preprocess(job_id, sff, mapping):
-    core = multiprocessing.cpu_count() - 1
+    core = max(multiprocessing.cpu_count() - 1, 1)
 
     pipeline = sff2otu.SFF2OTU(job_id, sff, mapping)
     return os.path.abspath(pipeline.run(processors = core))
