@@ -3,6 +3,7 @@
 import csv
 import os
 import numpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -27,7 +28,7 @@ class ML:
 
     def run(self, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
         matrix, classes = self.convert_input()
-        self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
+        return self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
 
     def command(self, args):
         process = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -91,7 +92,7 @@ class ML:
 
         process = self.command(['python', script, matrix, classes, scaling, solver, ranking] + options + [outdir])
 
-        prefix = os.path.join(os.path.dirname(self.otu_file), job_id + '.')
+        prefix = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.')
         result = []
 
         for filename in os.listdir(outdir):
