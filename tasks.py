@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import ml
 import multiprocessing
 import sff2otu
 
@@ -14,3 +15,8 @@ def preprocess(job_id, sff, mapping):
 
     pipeline = sff2otu.SFF2OTU(job_id, sff, mapping)
     return os.path.abspath(pipeline.run(processors = core))
+
+@app.task
+def machine_learing(job_id, otu_file, class_file, *args, **kwargs):
+    pipeline = ml.ML(job_id, otu_file, class_file)
+    return [os.path.abspath(path) for path in pipeline.run(*args, **kwargs)]
