@@ -17,6 +17,6 @@ def preprocess(job_id, sff, mapping):
     return os.path.abspath(pipeline.run(processors = core))
 
 @app.task
-def machine_learing(job_id, otu_file, class_file, *args, **kwargs):
+def machine_learning(job_id, otu_file, class_file, *args, **kwargs):
     pipeline = ml_pipeline.ML(job_id, otu_file, class_file)
     return [os.path.abspath(path) for path in pipeline.run(*args, **kwargs)]
