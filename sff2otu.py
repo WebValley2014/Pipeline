@@ -186,7 +186,7 @@ class SFF2OTU:
         return otu_table
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser(usage = 'Usage: %prog [OPTIONS] [TRIM_OPTIONS]')
+    parser = optparse.OptionParser(usage = 'Usage: %prog [OPTIONS]')
     parser.add_option('-p', '--parallel', help = 'number of jobs for parallelizing in denosing and pick_de_novo_otus.py [default: %default]', type = 'int', default = 1)
     parser.add_option('-s', '--sff-files', help = 'sff files (comma separated)')
     parser.add_option('-m', '--map-files', help = 'map files (comma separated)')
