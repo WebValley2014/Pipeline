@@ -172,6 +172,8 @@ class SFF2OTU:
                 data = numpy.concatenate((data, matrix[1:]))
 
         line[0] = '#OTU ID'
+        line = numpy.append(line, 'Label')
+
         data = numpy.append(data, data[:, 0].reshape(len(data), 1), axis = 1)
         for i in xrange(len(data)):
             data[i, 0] = 'merged' + str(i)
