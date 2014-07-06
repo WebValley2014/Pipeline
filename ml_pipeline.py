@@ -49,7 +49,7 @@ class ML:
         process = self.command(['filter_otus_from_otu_table.py', '-i', biom, '-o', filtered, '-s', str(ncol * percentage / 100)])
 
         otu_file = os.path.join(self.dir, 'otu_table.txt')
-        process = self.command(['biom', 'convert', '-i', filtered, '-o', otu_file, '-b'])
+        process = self.command(['biom', 'convert', '-i', filtered, '-o', otu_file, '-b', '--header-key=Taxon'])
 
         return otu_file
 
