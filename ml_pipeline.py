@@ -98,8 +98,9 @@ class ML:
         for filename in os.listdir(outdir):
             for suffix in ['featurelist', 'metrics', 'stability']:
                 if filename.endswith(suffix + '.txt'):
-                    shutil.copyfile(os.path.join(outdir, filename), prefix + '.' + suffix + '.txt')
-                    result.append(prefix + suffix + '.txt')
+                    output = prefix + suffix + '.txt'
+                    shutil.copyfile(os.path.join(outdir, filename), output)
+                    result.append(output)
 
         return result
 
