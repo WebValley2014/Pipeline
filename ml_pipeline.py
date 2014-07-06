@@ -26,8 +26,9 @@ class ML:
         import shutil
         shutil.rmtree(self.dir)
 
-    def run(self, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
-        matrix, classes = self.convert_input()
+    def run(self, percentage = 5, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
+        otu_file = self.filter_otu(percentage)
+        matrix, classes = self.convert_input(otu_file)
         return self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
 
     def command(self, args):
@@ -38,12 +39,26 @@ class ML:
             raise IOError, '%s raises error: %d' % (args[0], retcode)
         return process.stdout.readlines()
 
-    def convert_input(self):
+    def filter_otu(self, percentage):
+        ncol = numpy.loadtxt(self.otu_file, dtype = str)
+
+        biom = os.path.join(self.dir, 'convert.biom')
+        process = self.command(['biom', 'convert', '-i', self.otu_file, '-o', biom, '--table-type', 'otu table'])
+
+        filtered = os.path.join(self.dir, 'filter.biom')
+        process = self.command(['filter_otus_from_otu_table.py', '-i', biom, '-o', filtered, '-s', str(ncol * percentage / 100)])
+
+        otu_file = os.path.join(self.dir, 'otu_table.txt')
+        process = self.command(['biom', 'convert', '-i', filtered, '-o', otu_file, '-b'])
+
+        return otu_file
+
+    def convert_input(self, otu_file):
         features = []
         samples = None
         data = None
 
-        with open(self.otu_file) as otu:
+        with open(otu_file) as otu:
             reader = csv.reader(otu, delimiter = '\t')
             samples = reader.next()[1:]
 
