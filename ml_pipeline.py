@@ -40,7 +40,7 @@ class ML:
         return process.stdout.readlines()
 
     def filter_otu(self, percentage):
-        ncol = numpy.loadtxt(self.otu_file, dtype = str)
+        ncol = numpy.loadtxt(self.otu_file, dtype = str).shape[1] - 2
 
         biom = os.path.join(self.dir, 'convert.biom')
         process = self.command(['biom', 'convert', '-i', self.otu_file, '-o', biom, '--table-type', 'otu table'])
