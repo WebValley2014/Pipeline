@@ -15,7 +15,7 @@ def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles):
     core = max(multiprocessing.cpu_count() - 1, 1)
 
     start_time = unicode(datetime.datetime.now())
-    pipeline = sff2otu.SFF2OTU(job_id, sff, mapping)
+    pipeline = sff2otu.SFF2OTU(uniqueJobID, listofSFFfiles, listOfMappingFiles)
     result = os.path.abspath(pipeline.run(processors = core))
     finish_time = unicode(datetime.datetime.now())
 
