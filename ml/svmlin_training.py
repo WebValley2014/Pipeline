@@ -64,8 +64,8 @@ parser = myArgumentParser(description='Run a training experiment (10x5-CV fold) 
 parser.add_argument('DATAFILE', type=str, help='Training datafile')
 parser.add_argument('LABELSFILE', type=str, help='Sample labels')
 parser.add_argument('SCALING', type=str, choices=['norm_l2', 'std', 'minmax'], default='norm_l2', help='Scaling method')
-parser.add_argument('SVM_TYPE', type=str, choices=['l2r_l2loss_svc', 'l2r_l2loss_svc_dual', 'l2r_l1loss_svc_dual', 'l2r_lr_dual', 'l1r_l2loss_svc'], help='SVM type')
-parser.add_argument('RANK_METHOD', type=str, choices=['SVM', 'RFE', 'ReliefF', 'tree', 'randomForest', 'KBest', 'random'], help='Feature ranking method: SVM (SVM weights), RFE, ReliefF, extraTrees, Random Forest, Anova F-score, random ranking')
+parser.add_argument('ML_TYPE', type=str, choices=['randomForest', 'l2r_l2loss_svc', 'l2r_l2loss_svc_dual', 'l2r_l1loss_svc_dual', 'l2r_lr_dual', 'l1r_l2loss_svc'], help='SVM type')
+parser.add_argument('RANK_METHOD', type=str, choices=['SVM', 'RFE', 'randomForest', 'random'], help='Feature ranking method: SVM (SVM weights), RFE, ReliefF, extraTrees, Random Forest, Anova F-score, random ranking')
 parser.add_argument('OUTDIR', type=str, help='Output directory')
 parser.add_argument('--random', action='store_true', help='Run with random sample labels')
 parser.add_argument('--cv_k', type=np.int, default=5, help='Number of CV folds')
@@ -82,7 +82,7 @@ args = parser.parse_args()
 DATAFILE = args.DATAFILE
 LABELSFILE = args.LABELSFILE
 SCALING = args.SCALING
-SVM_TYPE = args.SVM_TYPE
+SVM_TYPE = args.ML_TYPE
 RANK_METHOD = args.RANK_METHOD
 OUTDIR = args.OUTDIR
 plot_out = args.plot
@@ -96,16 +96,9 @@ BASEFILE = os.path.splitext(os.path.basename(DATAFILE))[0]
 OUTFILE = os.path.join(OUTDIR, '_'.join([BASEFILE, SVM_TYPE, RANK_METHOD, SCALING]))
 
 # load modules
-if RANK_METHOD == 'ReliefF':
-    from relief import ReliefF
-    # add ReliefF K to OUTFILE
-    OUTFILE = os.path.join(OUTDIR, '_'.join([BASEFILE, SVM_TYPE, RANK_METHOD + str(relief_k), SCALING]))
-elif RANK_METHOD == 'tree' :
-    from sklearn.ensemble import ExtraTreesClassifier
-elif RANK_METHOD == 'randomForest' :
+if RANK_METHOD == 'randomForest' or SVM_TYPE == 'randomForest':
     from sklearn.ensemble import RandomForestClassifier
-elif RANK_METHOD == 'KBest':
-    from sklearn.feature_selection import SelectKBest, f_classif
+    RANK_METHOD = 'randomForest'
 
 # number of CV folds
 #CV_K = 5
@@ -117,6 +110,8 @@ TUN_CV_K = 10
 TUN_CV_P = 50
 # list of C values for SVM tuning
 TUN_SVM_C = [10**k for k in np.arange(-7, 5)]
+# maximum count of trying k-fold data selection
+KFOLD_TRY = 100
 
 sample_names, var_names, x = load_data(DATAFILE)
 y = np.loadtxt(LABELSFILE, dtype=np.int)
@@ -173,11 +168,12 @@ AUC = np.empty_like(NPV)
 DOR = np.empty_like(NPV)
 ACC = np.empty_like(NPV)
 
-print "Tuning SVM..."
-C, mcc, err, mcc_tr, err_tr = svmlin_t(x, y, svm_type=SVM_TYPE, scaling=SCALING, list_C=TUN_SVM_C, cv_k=TUN_CV_K, cv_p=TUN_CV_P)
-print "Best C: %s (MCC: %.3f)" % (C, mcc)
-internal_w.writerow([C, mcc, err, mcc_tr, err_tr])
-internalf.close()
+if SVM_TYPE != 'randomForest':
+    print "Tuning SVM..."
+    C, mcc, err, mcc_tr, err_tr = svmlin_t(x, y, svm_type=SVM_TYPE, scaling=SCALING, list_C=TUN_SVM_C, cv_k=TUN_CV_K, cv_p=TUN_CV_P)
+    print "Best C: %s (MCC: %.3f)" % (C, mcc)
+    internal_w.writerow([C, mcc, err, mcc_tr, err_tr])
+    internalf.close()
 
 ys=[]
 
@@ -192,8 +188,22 @@ else:
         ys.append(y)
 
 for n in range(CV_N):
-    idx = mlpy.cv_kfold(n=x.shape[0], k=CV_K, strat=ys[n], seed=n)
-    print "%d over %d experiments" % (n+1, CV_N)
+    seed = n
+    while True:
+        idx = mlpy.cv_kfold(n=x.shape[0], k=CV_K, strat=ys[n], seed=seed)
+
+        for i, (idx_tr, idx_ts) in enumerate(idx):
+            x_tr, x_ts = x[idx_tr], x[idx_ts]
+            if any(np.var(x_tr, axis=0) == 0):
+                seed += CV_N
+                break
+        else:
+            break
+
+        if seed > n + CV_N * KFOLD_TRY:
+            raise IOError, 'filter threshold should be more higher'
+
+        print "%d over %d experiments" % (n+1, CV_N)
 
     for i, (idx_tr, idx_ts) in enumerate(idx):
 
@@ -212,7 +222,8 @@ for n in range(CV_N):
             x_ts, _, _ = minmax_scaling(x_ts, m_tr, r_tr)
 
         w = compute_weights(y_tr)
-        svm = mlpy.LibLinear(solver_type=SVM_TYPE, C=C, weight=w)
+        if SVM_TYPE != 'randomForest':
+            svm = mlpy.LibLinear(solver_type=SVM_TYPE, C=C, weight=w)
         
         if RANK_METHOD == 'random':
             ranking_tmp = np.arange(len(var_names))
@@ -246,17 +257,27 @@ for n in range(CV_N):
         for j, s in enumerate(FSTEPS):
             v = RANKING[(n * CV_K) + i][:s]
             x_tr_fs, x_ts_fs = x_tr[:, v], x_ts[:, v]
-            svm.learn(x_tr_fs, y_tr)
-            p = svm.pred(x_ts_fs)
-            pv = svm.pred_values(x_ts_fs)
+
+            if SVM_TYPE != 'randomForest':
+                svm.learn(x_tr_fs, y_tr)
+                p = svm.pred(x_ts_fs)
+                pv = svm.pred_values(x_ts_fs)
+            else:
+                if RANK_METHOD != 'randomForest':
+                    forest = RandomForestClassifier(n_estimators=250, criterion='gini', random_state=n)
+                forest.fit(x_tr_fs, y_tr)
+                p = forest.predict(x_ts_fs)
+
             NPV[(n * CV_K) + i, j] = perf.npv(y_ts, p)
             PPV[(n * CV_K) + i, j] = perf.ppv(y_ts, p)
             SENS[(n * CV_K) + i, j] = perf.sensitivity(y_ts, p)
             SPEC[(n * CV_K) + i, j] = perf.specificity(y_ts, p)
             MCC[(n * CV_K) + i, j] = perf.KCCC_discrete(y_ts, p)
-            AUC[(n * CV_K) + i, j] = perf.auc_wmw(y_ts, -pv)
             DOR[(n * CV_K) + i, j] = perf.dor(y_ts, p)
             ACC[(n * CV_K) + i, j] = perf.accuracy(y_ts, p)
+
+            if SVM_TYPE != 'randomForest':
+                AUC[(n * CV_K) + i, j] = perf.auc_wmw(y_ts, -pv)
 
 # write metrics for all CV iterations
 np.savetxt(OUTFILE + "_allmetrics_MCC.txt", MCC, fmt='%.4f', delimiter='\t')

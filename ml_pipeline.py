@@ -26,7 +26,7 @@ class ML:
         import shutil
         shutil.rmtree(self.dir)
 
-    def run(self, percentage = 5, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
+    def run(self, percentage = 10, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
         otu_file = self.filter_otu(percentage)
         matrix, classes = self.convert_input(otu_file)
         return self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
