@@ -39,7 +39,7 @@ class SFF2OTU:
         shutil.rmtree(self.dir)
         shutil.rmtree(self.fasta_dir)
 
-    def run(self, processors = 1, *args, **kwargs):
+    def run(self, processors = 1, percentage = 10, *args, **kwargs):
         kwargs['processors'] = processors
 
         self.sffinfo()
@@ -50,7 +50,8 @@ class SFF2OTU:
         mapfile = self.merge_map()
         self.merge_fasta(mapfile)
         self.pick_otus(processors)
-        taxa_otu = self.summarize_taxa()
+        biom = self.filter_otu(percentage)
+        taxa_otu = self.summarize_taxa(biom)
         return self.merge_otu(taxa_otu)
 
     def command(self, args):
@@ -148,8 +149,21 @@ class SFF2OTU:
         combined = os.path.join(self.dir, 'combined_seqs.fna')
         self.command(['pick_de_novo_otus.py', '-i', combined, '-o', self.dir, '-f', '-a', '-O', str(parallel)])
 
-    def summarize_taxa(self):
+    def filter_otu(self, percentage):
         biom = os.path.join(self.dir, 'otu_table.biom')
+        otu_table = os.path.join(self.dir, 'otu_table.txt')
+        process = self.command(['biom', 'convert', '-i', biom, '-o', otu_table, '-b', '--header-key=taxonomy'])
+
+        otu_data = numpy.loadtxt(otu_table, dtype = str, delimiter = '\t')
+        ncol = otu_data.shape[1] - 2
+
+        filtered = os.path.join(self.dir, 'filter.biom')
+        self.command(['filter_otus_from_otu_table.py', '-i', biom, '-o', filtered, '-n', 'Unassigned'])
+        self.command(['filter_otus_from_otu_table.py', '-i', filtered, '-o', biom, '-s', str(ncol * percentage / 100)])
+
+        return biom
+
+    def summarize_taxa(self, biom):
         taxa_out = os.path.join(self.dir, 'taxa_out')
         self.command(['summarize_taxa.py', '-i', biom, '-o', taxa_out])
         return taxa_out
