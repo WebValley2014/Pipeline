@@ -5,6 +5,7 @@ import numpy
 import optparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -148,6 +149,10 @@ class SFF2OTU:
     def pick_otus(self, parallel):
         combined = os.path.join(self.dir, 'combined_seqs.fna')
         self.command(['pick_de_novo_otus.py', '-i', combined, '-o', self.dir, '-f', '-a', '-O', str(parallel)])
+
+        out_dir = os.path.dirname(self.sff[0])
+        for filename in ['otu_table.biom', 'rep_set.tre', os.path.join('rep_set', 'combined_seqs_rep_set.fasta')]:
+            shutil.copyfile(os.path.join(self.dir, filename), os.path.join(out_dir, os.path.basename(filename)))
 
     def filter_otu(self, percentage):
         biom = os.path.join(self.dir, 'otu_table.biom')
