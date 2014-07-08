@@ -24,4 +24,8 @@ def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles):
 @app.task(bind = True, name = 'ml')
 def machine_learning(self, job_id, otu_file, class_file, *args, **kwargs):
     pipeline = ml_pipeline.ML(job_id, otu_file, class_file)
-    return [os.path.abspath(path) for path in pipeline.run(*args, **kwargs)]
+    result = pipeline.run(*args, **kwargs)
+    
+    for key in result:
+        result[key] = os.path.abspath(result[key])
+    return result

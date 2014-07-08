@@ -9,6 +9,8 @@ import sys
 import tempfile
 import uuid
 
+import plot_metrics
+
 class ML:
     def __init__(self, job_id, otu_file, class_file):
         self.otu_file = otu_file
@@ -26,9 +28,15 @@ class ML:
         import shutil
         shutil.rmtree(self.dir)
 
-    def run(self, percentage = 10, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
+    def run(self, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
         matrix, classes = self.convert_input()
-        return self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
+        result = self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
+
+        result['img'] = os.path.join(os.path.dirname(self.otu_file), 'img')
+        graph = plot_metrics.BacteriaGraph(result['metrics'])
+        graph.printAllPlots(result['img'])
+
+        return result
 
     def command(self, args):
         process = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -93,14 +101,14 @@ class ML:
         process = self.command(['python', script, matrix, classes, scaling, solver, ranking] + options + [outdir])
 
         prefix = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.')
-        result = []
+        result = {}
 
         for filename in os.listdir(outdir):
             for suffix in ['featurelist', 'metrics', 'stability']:
                 if filename.endswith(suffix + '.txt'):
                     output = prefix + suffix + '.txt'
                     shutil.copyfile(os.path.join(outdir, filename), output)
-                    result.append(output)
+                    result[suffix] = output
 
         return result
 
