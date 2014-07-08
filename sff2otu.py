@@ -88,7 +88,10 @@ class SFF2OTU:
 
     def map2oligo(self):
         for mapping in self.mapping:
-            data = numpy.loadtxt(mapping, dtype = 'string')
+            data = numpy.loadtxt(mapping, dtype = 'string', delimiter = '\t')
+            if len(data.shape) == 1:
+                data = data.reshape((1, -1))
+
             output = os.path.join(self.dir, os.path.splitext(os.path.basename(mapping))[0] + '.oligo')
 
             with open(output, 'w') as oligo:
