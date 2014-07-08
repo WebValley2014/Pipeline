@@ -19,7 +19,7 @@ def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles):
     result = os.path.abspath(pipeline.run(processors = core))
     finish_time = unicode(datetime.datetime.now())
 
-    return {'funct': result, 'st': start_time, 'ft': finish_time}
+    return {'funct': result['txt'], 'st': start_time, 'ft': finish_time}
 
 @app.task
 def machine_learning(job_id, otu_file, class_file, *args, **kwargs):

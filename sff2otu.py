@@ -34,6 +34,7 @@ class SFF2OTU:
 
         self.trim_fasta = []
         self.group = []
+        self.result = {}
 
     def __del__(self):
         import shutil
@@ -53,7 +54,9 @@ class SFF2OTU:
         self.pick_otus(processors)
         biom = self.filter_otu(percentage)
         taxa_otu = self.summarize_taxa(biom)
-        return self.merge_otu(taxa_otu)
+        self.merge_otu(taxa_otu)
+
+        return self.result
 
     def command(self, args):
         process = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -152,7 +155,9 @@ class SFF2OTU:
 
         out_dir = os.path.dirname(self.sff[0])
         for filename in ['otu_table.biom', 'rep_set.tre', os.path.join('rep_set', 'combined_seqs_rep_set.fasta')]:
-            shutil.copyfile(os.path.join(self.dir, filename), os.path.join(out_dir, os.path.basename(filename)))
+            out_file = os.path.join(out_dir, os.path.basename(filename))
+            shutil.copyfile(os.path.join(self.dir, filename), out_file)
+            self.result[os.path.splitext(filename)[1][1:]] = out_file
 
     def filter_otu(self, percentage):
         biom = os.path.join(self.dir, 'otu_table.biom')
@@ -204,7 +209,7 @@ class SFF2OTU:
             for line in data:
                 writer.writerow(line)
 
-        return otu_table
+        self.result['txt'] = otu_table
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage = 'Usage: %prog [OPTIONS]')
