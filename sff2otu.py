@@ -170,7 +170,7 @@ class SFF2OTU:
 
     def summarize_taxa(self, biom):
         taxa_out = os.path.join(self.dir, 'taxa_out')
-        self.command(['summarize_taxa.py', '-i', biom, '-o', taxa_out])
+        self.command(['summarize_taxa.py', '-i', biom, '-o', taxa_out, '-L', '2,3,4,5,6,7'])
         return taxa_out
 
     def merge_otu(self, taxa_out):
