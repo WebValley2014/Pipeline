@@ -192,7 +192,7 @@ class SFF2OTU:
         for i in xrange(len(data)):
             data[i, 0] = 'merged' + str(i)
 
-        otu_table = os.path.join(os.path.dirname(self.sff[0]), self.job_id + '.otu_table.txt')
+        otu_table = os.path.join(os.path.dirname(self.sff[0]), 'otu_table.txt')
         with open(otu_table, 'w') as output:
             writer = csv.writer(output, delimiter = '\t', lineterminator = '\n')
             writer.writerow(line)
