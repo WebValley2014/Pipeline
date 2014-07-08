@@ -21,7 +21,7 @@ def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles):
 
     return {'funct': result['txt'], 'st': start_time, 'ft': finish_time}
 
-@app.task
-def machine_learning(job_id, otu_file, class_file, *args, **kwargs):
+@app.task(bind = True, name = 'ml')
+def machine_learning(self, job_id, otu_file, class_file, *args, **kwargs):
     pipeline = ml_pipeline.ML(job_id, otu_file, class_file)
     return [os.path.abspath(path) for path in pipeline.run(*args, **kwargs)]
