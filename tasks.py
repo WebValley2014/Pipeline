@@ -16,10 +16,10 @@ def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles):
 
     start_time = unicode(datetime.datetime.now())
     pipeline = sff2otu.SFF2OTU(uniqueJobID, listofSFFfiles, listOfMappingFiles)
-    result = os.path.abspath(pipeline.run(processors = core))
+    result = pipeline.run(processors = core)
     finish_time = unicode(datetime.datetime.now())
 
-    return {'funct': result['txt'], 'st': start_time, 'ft': finish_time}
+    return {'funct': os.path.abspath(result['txt']), 'st': start_time, 'ft': finish_time}
 
 @app.task(bind = True, name = 'ml')
 def machine_learning(self, job_id, otu_file, class_file, *args, **kwargs):
