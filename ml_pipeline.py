@@ -45,15 +45,14 @@ class ML:
 
         with open(self.otu_file) as otu:
             reader = csv.reader(otu, delimiter = '\t')
-            comments = reader.next()
-            samples = reader.next()[1:]
+            samples = reader.next()[1: -1]
 
             for line in reader:
                 features.append(line[-1])
                 if data == None:
-                    data = line[1:]
+                    data = line[1: -1]
                 else:
-                    data = numpy.vstack((data, line[1:]))
+                    data = numpy.vstack((data, line[1: -1]))
         
             data = numpy.transpose(data, (1, 0))
             data = numpy.hstack((numpy.array(samples).reshape(len(samples), 1), data))
