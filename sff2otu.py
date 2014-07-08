@@ -163,7 +163,7 @@ class SFF2OTU:
         ncol = otu_data.shape[1] - 2
 
         filtered = os.path.join(self.dir, 'filter.biom')
-        self.command(['filter_otus_from_otu_table.py', '-i', biom, '-o', filtered, '-n', 'Unassigned'])
+        self.command(['filter_taxa_from_otu_table.py', '-i', biom, '-o', filtered, '-n', 'Unassigned'])
         self.command(['filter_otus_from_otu_table.py', '-i', filtered, '-o', biom, '-s', str(ncol * percentage / 100)])
 
         return biom
