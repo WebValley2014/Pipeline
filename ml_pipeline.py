@@ -53,7 +53,11 @@ class ML:
 
         with open(self.otu_file) as otu:
             reader = csv.reader(otu, delimiter = '\t')
-            samples = reader.next()[1: -1]
+
+            line = []
+            while len(line) == 0 or line[0] != '#OTU ID':
+                line = reader.next()
+            samples = line[1: -1]
 
             for line in reader:
                 features.append(line[-1])
