@@ -27,21 +27,22 @@ if (p<0) or (p>100):
 
 inputFile = open(dataFile, 'r')
 
-header = ''
-while not header.startswith('#OTU ID'):
-    header = inputFile.readline()
+header_str = ''
+while not header_str.startswith('#OTU ID'):
+    header_str = inputFile.readline()
 
 data_otu = np.loadtxt(inputFile, dtype = str)
 # transpose OTU table
 data = np.transpose(data_otu)
 # exclude last row with taxonomy
-x = data[1:-1,1:].astype(np.float)
+x = data[1:-1,:].astype(np.float)
 # OTU ID
-feat = data[0, 1:]
+feat = data[0,:]
 # samples
-samp = data[1:, 0]
+header = header_str.split('\t')
+samp = np.array(header[1:-1], dtype=str)
 # taxonomy 
-taxa = data[data.shape[0]-1, 1:]
+taxa = data[data.shape[0]-1]
 
 cutoff = np.int( np.round(0.01*p*x.shape[0]) )
 print "Sample cutoff: %s" % cutoff
@@ -58,13 +59,8 @@ taxa = taxa[ ns < (x.shape[0] - cutoff) ]
 print "New feature size: %s" % x.shape[1]
 
 outw = open(outFile, 'w')
-outw.write(header)
+outw.write(header_str)
 writer = csv.writer(outw, delimiter = '\t', lineterminator = '\n')
-
-# write the header
-#writer.writerow( [data[0,0]] + feat.tolist() )
-#for row in range(0, x.shape[0]):
-#	writer.writerow( [ samp[row] ] + x[row,:].tolist() )
 
 # write taxonomy 
 #writer.writerow( [data[data.shape[0],0]] + taxa.tolist() )
@@ -72,7 +68,7 @@ writer = csv.writer(outw, delimiter = '\t', lineterminator = '\n')
 # transpose data
 x_T = np.transpose(x)
 
-writer.writerow( [data[0,0]] + samp.tolist() )
+#writer.writerow( [data[0,0]] + samp.tolist() )
 for row in range(0, x_T.shape[0]):
 	writer.writerow( [ feat[row] ] + x_T[row,:].tolist() + [ taxa[row] ] )
 
