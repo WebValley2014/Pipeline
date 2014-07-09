@@ -26,7 +26,10 @@ if (p<0) or (p>100):
 	raise ValueError("p must be in [0, 100]")
 
 inputFile = open(dataFile, 'r')
-header = inputFile.readline()
+
+header = ''
+while not header.startswith('#OTU ID'):
+    header = inputFile.readline()
 
 data_otu = np.loadtxt(inputFile, dtype = str)
 # transpose OTU table

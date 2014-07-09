@@ -136,7 +136,6 @@ class ML:
         processed_table[0,:] = whole_table[0,:]
 
         labels = numpy.loadtxt(classes, dtype = str, delimiter = '\n')
-        print labels
         processed_table[1, 0] = 'Label'
         processed_table[1, 1: -1] = labels
 
