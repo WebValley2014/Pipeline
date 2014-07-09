@@ -41,8 +41,20 @@ class SFF2OTU:
         shutil.rmtree(self.dir)
         shutil.rmtree(self.fasta_dir)
 
-    def run(self, processors = 1, percentage = 10, *args, **kwargs):
+    def run(self, processors = 1, *args, **kwargs):
         kwargs['processors'] = processors
+
+        defaults = {
+            'minlength': 200,
+            'maxhomop': 8,
+            'maxambig': 0,
+            'qwindowaverage': 35,
+            'qwindowsize': 50
+        }
+
+        for key, value in defaults.items():
+            if key not in kwargs:
+                kwargs[key] = value
 
         self.sffinfo()
         self.map2oligo()
@@ -52,7 +64,7 @@ class SFF2OTU:
         mapfile = self.merge_map()
         self.merge_fasta(mapfile)
         self.pick_otus(processors)
-        biom = self.filter_otu(percentage)
+        biom = self.filter_otu()
         taxa_otu = self.summarize_taxa(biom)
         self.merge_otu(taxa_otu)
 
@@ -162,19 +174,11 @@ class SFF2OTU:
             shutil.copyfile(os.path.join(self.dir, filename), out_file)
             self.result[os.path.splitext(filename)[1][1:]] = out_file
 
-    def filter_otu(self, percentage):
+    def filter_otu(self):
         biom = os.path.join(self.dir, 'otu_table.biom')
-        otu_table = os.path.join(self.dir, 'otu_table.txt')
-        process = self.command(['biom', 'convert', '-i', biom, '-o', otu_table, '-b', '--header-key=taxonomy'])
-
-        otu_data = numpy.loadtxt(otu_table, dtype = str, delimiter = '\t')
-        ncol = otu_data.shape[1] - 2
-
         filtered = os.path.join(self.dir, 'filter.biom')
         self.command(['filter_taxa_from_otu_table.py', '-i', biom, '-o', filtered, '-n', 'Unassigned'])
-        self.command(['filter_otus_from_otu_table.py', '-i', filtered, '-o', biom, '-s', str(ncol * percentage / 100)])
-
-        return biom
+        return filtered
 
     def summarize_taxa(self, biom):
         taxa_out = os.path.join(self.dir, 'taxa_out')
@@ -217,7 +221,6 @@ class SFF2OTU:
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage = 'Usage: %prog [OPTIONS]')
     parser.add_option('-p', '--parallel', help = 'number of jobs for parallelizing in denosing and pick_de_novo_otus.py [default: %default]', type = 'int', default = 1)
-    parser.add_option('-t', '--threshold', help = 'threshold for OTU filtering [default: %default]', type = 'int', default = 10)
     parser.add_option('-s', '--sff-files', help = 'sff files (comma separated)')
     parser.add_option('-m', '--map-files', help = 'map files (comma separated)')
 
@@ -232,4 +235,4 @@ if __name__ == '__main__':
     job_id = str(uuid.uuid4())
 
     sff2otu = SFF2OTU(job_id, sff, mapping)
-    print(sff2otu.run(processors = options.parallel, percentage = options.threshold))
+    print(sff2otu.run(processors = options.parallel))

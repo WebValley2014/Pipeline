@@ -23,20 +23,22 @@ class ML:
 
         self.job_id = job_id
         self.dir = tempfile.mkdtemp()
+        self.result = {}
 
     def __del__(self):
         import shutil
         shutil.rmtree(self.dir)
 
-    def run(self, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
-        matrix, classes = self.convert_input()
-        result = self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
+    def run(self, percentage = 10, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
+        otu_table = self.filter_otu(percentage)
+        matrix, classes = self.convert_input(otu_table)
+        self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
 
-        result['img'] = os.path.join(os.path.dirname(self.otu_file), 'img')
-        graph = plot_metrics.BacteriaGraph(result['metrics'])
-        graph.printAllPlots(result['img'])
+        self.result['img'] = os.path.join(os.path.dirname(self.otu_file), 'img')
+        graph = plot_metrics.BacteriaGraph(self.result['metrics'])
+        graph.printAllPlots(self.result['img'])
 
-        return result
+        return self.result
 
     def command(self, args):
         process = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -46,12 +48,22 @@ class ML:
             raise IOError, '%s raises error: %d' % (args[0], retcode)
         return process.stdout.readlines()
 
-    def convert_input(self):
+    def filter_otu(self, percentage):
+        script = os.path.join(os.path.dirname(__file__), 'ml', 'feat_filter.py')
+        out_file = os.path.join(self.dir, 'filtered_otu.txt')
+        process = self.command(['python', script, '-i', self.otu_file, '-o', out_file, '-p', str(percentage)])
+
+        self.result['otu'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.otu_table.txt')
+        shutil.copyfile(out_file, self.result['otu'])
+
+        return out_file
+
+    def convert_input(self, otu_file):
         features = []
         samples = None
         data = None
 
-        with open(self.otu_file) as otu:
+        with open(otu_file) as otu:
             reader = csv.reader(otu, delimiter = '\t')
 
             line = []
@@ -105,16 +117,12 @@ class ML:
         process = self.command(['python', script, matrix, classes, scaling, solver, ranking] + options + [outdir])
 
         prefix = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.')
-        result = {}
-
         for filename in os.listdir(outdir):
             for suffix in ['featurelist', 'metrics', 'stability']:
                 if filename.endswith(suffix + '.txt'):
                     output = prefix + suffix + '.txt'
                     shutil.copyfile(os.path.join(outdir, filename), output)
-                    result[suffix] = output
-
-        return result
+                    self.result[suffix] = output
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
