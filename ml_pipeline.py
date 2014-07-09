@@ -34,6 +34,7 @@ class ML:
         matrix, classes = self.convert_input(otu_table)
         self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
         self.process_otu_table(n_groups, classes)
+        self.phylo3d()
 
         self.result['img'] = os.path.join(os.path.dirname(self.otu_file), 'img')
         graph = plot_metrics.BacteriaGraph(self.result['metrics'])
@@ -150,6 +151,15 @@ class ML:
 
         self.result['otu'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.otu_table.txt')
         numpy.savetxt(self.result['otu'], processed_table, delimiter = '\t', fmt = '%s')
+
+    def phylo3d(self):
+        script = os.path.join(os.path.dirname(__file__), 'phylo3D', 'import.py')
+        xml = os.path.join(self.dir, 'dendro.xml')
+        process = self.command(['python', script, self.result['featurelist'], xml])
+
+        script = os.path.join(os.path.dirname(__file__), 'phylo3D', 'process.py')
+        self.result['json'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.json')
+        process = self.command(['python', script, xml, self.result['featurelist'], self.result['json']])
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
