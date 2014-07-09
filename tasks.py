@@ -11,12 +11,12 @@ from celery import Celery
 app = Celery('tasks', broker = 'amqp://wvlab:wv2014@54.72.200.168/', backend = 'amqp')
 
 @app.task(bind = True, name = 'prepro')
-def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles):
+def preprocess(self, uniqueJobID, listofSFFfiles, listOfMappingFiles, *args, **kwargs):
     core = max(multiprocessing.cpu_count() - 1, 1)
 
     start_time = unicode(datetime.datetime.now())
     pipeline = sff2otu.SFF2OTU(uniqueJobID, listofSFFfiles, listOfMappingFiles)
-    result = pipeline.run(processors = core)
+    result = pipeline.run(processors = core, *args, **kwargs)
     finish_time = unicode(datetime.datetime.now())
 
     return {'funct': os.path.abspath(result['txt']), 'st': start_time, 'ft': finish_time}

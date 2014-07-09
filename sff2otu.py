@@ -217,6 +217,7 @@ class SFF2OTU:
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage = 'Usage: %prog [OPTIONS]')
     parser.add_option('-p', '--parallel', help = 'number of jobs for parallelizing in denosing and pick_de_novo_otus.py [default: %default]', type = 'int', default = 1)
+    parser.add_option('-t', '--threshold', help = 'threshold for OTU filtering [default: %default]', type = 'int', default = 10)
     parser.add_option('-s', '--sff-files', help = 'sff files (comma separated)')
     parser.add_option('-m', '--map-files', help = 'map files (comma separated)')
 
@@ -231,4 +232,4 @@ if __name__ == '__main__':
     job_id = str(uuid.uuid4())
 
     sff2otu = SFF2OTU(job_id, sff, mapping)
-    print(sff2otu.run(processors = options.parallel))
+    print(sff2otu.run(processors = options.parallel, percentage = options.threshold))
