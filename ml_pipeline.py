@@ -29,10 +29,11 @@ class ML:
         import shutil
         shutil.rmtree(self.dir)
 
-    def run(self, percentage = 10, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
+    def run(self, percentage = 10, n_groups = 10, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
         otu_table = self.filter_otu(percentage)
         matrix, classes = self.convert_input(otu_table)
         self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
+        self.process_otu_table(n_groups, classes)
 
         self.result['img'] = os.path.join(os.path.dirname(self.otu_file), 'img')
         graph = plot_metrics.BacteriaGraph(self.result['metrics'])
@@ -53,8 +54,8 @@ class ML:
         out_file = os.path.join(self.dir, 'filtered_otu.txt')
         process = self.command(['python', script, '-i', self.otu_file, '-o', out_file, '-p', str(percentage)])
 
-        self.result['otu'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.otu_table.txt')
-        shutil.copyfile(out_file, self.result['otu'])
+        self.result['filtered_otu'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.otu_filtered.txt')
+        shutil.copyfile(out_file, self.result['filtered_otu'])
 
         return out_file
 
@@ -123,6 +124,33 @@ class ML:
                     output = prefix + suffix + '.txt'
                     shutil.copyfile(os.path.join(outdir, filename), output)
                     self.result[suffix] = output
+
+    def process_otu_table(self, n_groups, classes):
+        feature_names = numpy.loadtxt(self.result['featurelist'], dtype = str, skiprows = 1, usecols = (0, 1))
+        ranked = feature_names[:, 1]
+
+        whole_table = numpy.loadtxt(self.result['filtered_otu'], dtype = str, delimiter = '\t', comments = '^')
+        name_column = whole_table[:, -1]
+
+        processed_table = numpy.zeros((n_groups + 2, len(whole_table[1, :])), dtype = 'S512')
+        processed_table[0,:] = whole_table[0,:]
+
+        labels = numpy.loadtxt(classes, dtype = str, delimiter = '\n')
+        print labels
+        processed_table[1, 0] = 'Label'
+        processed_table[1, 1: -1] = labels
+
+        current_row = 2
+        for f in ranked[:n_groups]:
+            for i in range(1, len(name_column)):
+                if f in name_column[i] and current_row <= n_groups:
+                    processed_table[current_row, :] = whole_table[i, :]
+                    current_row += 1
+
+        processed_table.transpose()
+
+        self.result['otu'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.otu_table.txt')
+        numpy.savetxt(self.result['otu'], processed_table, delimiter = '\t', fmt = '%s')
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
