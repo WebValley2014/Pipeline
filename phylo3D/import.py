@@ -3,7 +3,7 @@
 # matplotlib.use('tkagg')
 
 import ete2
-from ete2 import Tree, TreeNode, TreeStyle
+from ete2 import Tree, TreeNode
 import sys
 from Bio import Phylo
 

@@ -115,7 +115,6 @@ class ML:
 
         outdir = os.path.join(self.dir, 'out')
         os.mkdir(outdir)
-
         process = self.command(['python', script, matrix, classes, scaling, solver, ranking] + options + [outdir])
 
         prefix = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.')
