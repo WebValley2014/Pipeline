@@ -29,8 +29,15 @@ class ML:
         import shutil
         shutil.rmtree(self.dir)
 
-    def run(self, percentage = 10, n_groups = 10, scaling = 'std', solver = 'l2r_l2loss_svc', ranking = 'SVM', *args, **kwargs):
+    def run(self, percentage = 20, n_groups = 10, scaling = 'std', solver = 'l2r_l1loss_svc_dual', ranking = 'SVM', *args, **kwargs):
         otu_table = self.filter_otu(percentage)
+	print 'Class: parameters'
+	print percentage, n_groups, scaling, solver, ranking
+
+	for name, value in kwargs.items():
+		print '{0} = {1}'.format(name, value)
+
+
         matrix, classes = self.convert_input(otu_table)
         self.machine_learning(matrix, classes, scaling, solver, ranking, kwargs)
         self.process_otu_table(n_groups, classes)
@@ -159,6 +166,7 @@ class ML:
         script = os.path.join(os.path.dirname(__file__), 'phylo3D', 'process.py')
         self.result['json'] = os.path.join(os.path.dirname(self.otu_file), self.job_id + '.json')
         process = self.command(['python', script, xml, self.result['featurelist'], self.result['json']])
+	shutil.copyfile('/opt/Pipeline/dendro.json', self.result['json'])
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:

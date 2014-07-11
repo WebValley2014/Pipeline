@@ -12,7 +12,8 @@ from Net import Net
 import sys
 
 
-celery = Celery('tasks', broker = 'amqp://wvlab:wv2014@54.72.43.115/', backend = 'amqp')
+# celery = Celery('tasks', broker = 'amqp://wvlab:wv2014@54.77.36.179/', backend = 'amqp')
+celery = Celery('tasks', broker = 'amqp://wvlab:wv2014@172.31.43.73/', backend = 'amqp')
 
 
 @celery.task(bind=True , name='prepro')
@@ -38,12 +39,11 @@ def mlearn(self , job_id, otu_file, class_file, *args, **kwargs):
     start_time = unicode(datetime.datetime.now())
     pipeline = ml_pipeline.ML(job_id, otu_file, class_file)
     result = pipeline.run(*args, **kwargs)
-
     for key in result:
+        print result[key]
         result[key] = os.path.abspath(result[key])
 
     finish_time = unicode(datetime.datetime.now())
-
 
     return {'funct': result , 'st': start_time, 'ft': finish_time}
 
